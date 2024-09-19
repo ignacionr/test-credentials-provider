@@ -1,0 +1,1 @@
+cl /LD /DUNICODE /D_UNICODE /I"include" src\DllMain.cpp src\SimpleCredentialProvider.cpp src\SimpleCredential.cpp /link /DLL /OUT:SimpleCredentialProvider.dll
