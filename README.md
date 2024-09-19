@@ -1,314 +1,115 @@
-### **Prerequisites**
+# Simple Credential Provider
 
-- **Development Environment**: Visual Studio (preferably 2019 or later)
-- **SDK**: Windows Software Development Kit (SDK)
-- **Knowledge**: Familiarity with C++ and COM programming
+A custom Windows Credential Provider that displays fields for a username and password, and authenticates the user against a local Windows account using the `KERB_INTERACTIVE_UNLOCK_LOGON` structure.
 
----
+## Features
 
-## **Step 1: Set Up the Development Environment**
+- Collects **Username** and **Password** on the Windows login screen.
+- Authenticates users against local Windows accounts.
+- Uses the `KERB_INTERACTIVE_UNLOCK_LOGON` for secure credential handling.
+- Provides basic error feedback if login fails.
+- Supports **Unicode** for wide character and internationalization support.
 
-Ensure that you have the Windows SDK and necessary development tools installed. You'll be using C++ and COM interfaces, so setting up the environment correctly is crucial.
+## Project Structure
 
----
+```bash
+project/
+│
+├── src/
+│   ├── DllMain.cpp                  # Entry point for the DLL
+│   ├── SimpleCredentialProvider.cpp  # Implements the Credential Provider interface
+│   └── SimpleCredential.cpp          # Handles user input and serialization of credentials
+│
+├── include/                          # Optional: Directory for header files (if needed)
+│
+├── SimpleCredentialProvider.dll      # Output DLL generated after compilation
+│
+└── README.md                         # This readme file
 
-## **Step 2: Create a New Credential Provider Project**
+Prerequisites
 
-1. **Open Visual Studio** and create a new **Win32 DLL project**.
-2. **Configure the project settings**:
-   - Set **Character Set** to **Unicode**.
-   - Enable **COM** support.
+Visual Studio (2019 or later) or cl.exe compiler.
 
----
+Windows SDK for Credential Provider support.
 
-## **Step 3: Implement the Credential Provider Interfaces**
 
-You need to implement two main interfaces:
+Compilation
 
-- `ICredentialProvider`: Represents the Credential Provider.
-- `ICredentialProviderCredential`: Represents each credential (in this case, username and password).
+Using cl.exe (Microsoft C++ Compiler)
 
-### **Implement ICredentialProvider**
+1. Open Developer Command Prompt for Visual Studio.
 
-Create a class that inherits from `ICredentialProvider` and implement all its methods.
 
-```cpp
-class SimpleCredentialProvider : public ICredentialProvider
-{
-public:
-    // Constructor and Destructor
-    SimpleCredentialProvider();
-    ~SimpleCredentialProvider();
+2. Navigate to the project root directory:
 
-    // IUnknown methods
-    IFACEMETHODIMP QueryInterface(REFIID riid, void** ppv);
-    IFACEMETHODIMP_(ULONG) AddRef();
-    IFACEMETHODIMP_(ULONG) Release();
+cd path\to\project
 
-    // ICredentialProvider methods
-    IFACEMETHODIMP SetUsageScenario(CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, DWORD dwFlags);
-    IFACEMETHODIMP SetSerialization(const CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs);
-    IFACEMETHODIMP Advise(ICredentialProviderEvents* pcpe, UINT_PTR upAdviseContext);
-    IFACEMETHODIMP UnAdvise();
-    IFACEMETHODIMP GetFieldDescriptorCount(DWORD* pdwCount);
-    IFACEMETHODIMP GetFieldDescriptorAt(DWORD dwIndex, CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR** ppcpfd);
-    IFACEMETHODIMP GetCredentialCount(DWORD* pdwCount, DWORD* pdwDefault, BOOL* pbAutoLogonWithDefault);
-    IFACEMETHODIMP GetCredentialAt(DWORD dwIndex, ICredentialProviderCredential** ppcpc);
 
-private:
-    LONG _cRef;
-    // Additional private members
-};
-```
+3. Compile the project with the following command:
 
-### **Implement ICredentialProviderCredential**
+cl /LD /DUNICODE /D_UNICODE /I"include" src\DllMain.cpp src\SimpleCredentialProvider.cpp src\SimpleCredential.cpp /link /DLL /OUT:SimpleCredentialProvider.dll
 
-Similarly, create a class that inherits from `ICredentialProviderCredential`.
 
-```cpp
-class SimpleCredential : public ICredentialProviderCredential
-{
-public:
-    // Constructor and Destructor
-    SimpleCredential();
-    ~SimpleCredential();
+4. The resulting SimpleCredentialProvider.dll will be created in the project directory.
 
-    // IUnknown methods
-    IFACEMETHODIMP QueryInterface(REFIID riid, void** ppv);
-    IFACEMETHODIMP_(ULONG) AddRef();
-    IFACEMETHODIMP_(ULONG) Release();
 
-    // ICredentialProviderCredential methods
-    IFACEMETHODIMP Advise(ICredentialProviderCredentialEvents* pcpce);
-    IFACEMETHODIMP UnAdvise();
-    IFACEMETHODIMP SetSelected(BOOL* pbAutoLogon);
-    IFACEMETHODIMP SetDeselected();
-    IFACEMETHODIMP GetFieldState(DWORD dwFieldID, CREDENTIAL_PROVIDER_FIELD_STATE* pcpfs, CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE* pcpfis);
-    IFACEMETHODIMP GetStringValue(DWORD dwFieldID, PWSTR* ppwsz);
-    IFACEMETHODIMP SetStringValue(DWORD dwFieldID, PCWSTR pwz);
-    IFACEMETHODIMP GetBitmapValue(DWORD dwFieldID, HBITMAP* phbmp);
-    IFACEMETHODIMP GetCheckboxValue(DWORD dwFieldID, BOOL* pbChecked, PWSTR* ppwszLabel);
-    IFACEMETHODIMP GetSubmitButtonValue(DWORD dwFieldID, DWORD* pdwAdjacentTo);
-    IFACEMETHODIMP GetComboBoxValueCount(DWORD dwFieldID, DWORD* pcItems, DWORD* pdwSelectedItem);
-    IFACEMETHODIMP GetComboBoxValueAt(DWORD dwFieldID, DWORD dwItem, PWSTR* ppwszItem);
-    IFACEMETHODIMP SetCheckboxValue(DWORD dwFieldID, BOOL bChecked);
-    IFACEMETHODIMP SetComboBoxSelectedValue(DWORD dwFieldID, DWORD dwSelectedItem);
-    IFACEMETHODIMP CommandLinkClicked(DWORD dwFieldID);
-    IFACEMETHODIMP GetSerialization(CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr, CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs, PWSTR* ppwszOptionalStatusText, CREDENTIAL_PROVIDER_STATUS_ICON* pcpsiOptionalStatusIcon);
 
-private:
-    LONG _cRef;
-    // Additional private members for storing username and password
-    PWSTR _pszUsername;
-    PWSTR _pszPassword;
-    // Additional methods and members
-};
-```
+Unicode Compilation
 
----
+This project is natively Unicode. To ensure Unicode is used throughout the project, the /DUNICODE /D_UNICODE flags are used to compile it with wide character support. Ensure all string literals in the source code use the L prefix for Unicode strings (e.g., L"Example String").
 
-## **Step 4: Define the Credential Fields**
+Installation
 
-Define the fields that will appear on the login screen.
+1. Once you have the SimpleCredentialProvider.dll:
 
-```cpp
-enum FIELD_ID
-{
-    FI_USERNAME = 0,
-    FI_PASSWORD = 1,
-    FI_SUBMIT_BUTTON = 2,
-    FI_NUM_FIELDS = 3, // Total number of fields
-};
+Register the DLL: Open a Command Prompt with Administrator privileges and run:
 
-CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR g_FieldDescriptors[] =
-{
-    { FI_USERNAME, CPFT_EDIT_TEXT, L"Username" },
-    { FI_PASSWORD, CPFT_PASSWORD_TEXT, L"Password" },
-    { FI_SUBMIT_BUTTON, CPFT_SUBMIT_BUTTON, L"Submit" },
-};
-```
+regsvr32 SimpleCredentialProvider.dll
 
----
+Register in Windows Registry: You will need to add the Credential Provider to the Windows Registry so it shows up on the login screen:
 
-## **Step 5: Display the Username and Password Fields**
-
-Implement the `GetFieldState` and `GetStringValue` methods in `SimpleCredential` to display the fields.
-
-```cpp
-HRESULT SimpleCredential::GetFieldState(
-    DWORD dwFieldID,
-    CREDENTIAL_PROVIDER_FIELD_STATE* pcpfs,
-    CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE* pcpfis)
-{
-    if (dwFieldID >= FI_NUM_FIELDS)
-        return E_INVALIDARG;
-
-    *pcpfs = CPFS_DISPLAY_IN_SELECTED_TILE;
-    *pcpfis = CPFIS_NONE;
-
-    return S_OK;
-}
-
-HRESULT SimpleCredential::GetStringValue(DWORD dwFieldID, PWSTR* ppwsz)
-{
-    if (dwFieldID == FI_USERNAME)
-    {
-        *ppwsz = _pszUsername ? _wcsdup(_pszUsername) : _wcsdup(L"");
-    }
-    else if (dwFieldID == FI_PASSWORD)
-    {
-        *ppwsz = _pszPassword ? _wcsdup(_pszPassword) : _wcsdup(L"");
-    }
-    else
-    {
-        return E_INVALIDARG;
-    }
-    return S_OK;
-}
-```
-
-Implement the `SetStringValue` method to store user input.
-
-```cpp
-HRESULT SimpleCredential::SetStringValue(DWORD dwFieldID, PCWSTR pwz)
-{
-    if (dwFieldID == FI_USERNAME)
-    {
-        if (_pszUsername)
-        {
-            CoTaskMemFree(_pszUsername);
-        }
-        _pszUsername = _wcsdup(pwz);
-    }
-    else if (dwFieldID == FI_PASSWORD)
-    {
-        if (_pszPassword)
-        {
-            CoTaskMemFree(_pszPassword);
-        }
-        _pszPassword = _wcsdup(pwz);
-    }
-    else
-    {
-        return E_INVALIDARG;
-    }
-    return S_OK;
-}
-```
-
----
-
-## **Step 6: Package and Serialize Credentials Using KERB_INTERACTIVE_UNLOCK_LOGON**
-
-In the `GetSerialization` method of `SimpleCredential`, package the credentials for authentication.
-
-```cpp
-HRESULT SimpleCredential::GetSerialization(
-    CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE* pcpgsr,
-    CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION* pcpcs,
-    PWSTR* ppwszOptionalStatusText,
-    CREDENTIAL_PROVIDER_STATUS_ICON* pcpsiOptionalStatusIcon)
-{
-    if (!_pszUsername || !_pszPassword)
-    {
-        *pcpgsr = CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-        return E_UNEXPECTED;
-    }
-
-    KERB_INTERACTIVE_UNLOCK_LOGON kiul;
-    ZeroMemory(&kiul, sizeof(kiul));
-
-    kiul.Logon.MessageType = KerbInteractiveLogon;
-    kiul.Logon.UserName = _pszUsername;
-    kiul.Logon.Password = _pszPassword;
-    kiul.Logon.LogonDomainName = L"";
-
-    // Serialize the structure
-    HRESULT hr = KerbInteractiveUnlockLogonPack(
-        &kiul,
-        &pcpcs->rgbSerialization,
-        &pcpcs->cbSerialization
-    );
-
-    if (SUCCEEDED(hr))
-    {
-        pcpcs->ulAuthenticationPackage = GetAuthPackage();
-        pcpcs->clsidCredentialProvider = CLSID_SimpleCredentialProvider;
-        *pcpgsr = CPGSR_RETURN_CREDENTIAL_FINISHED;
-    }
-
-    return hr;
-}
-```
-
-**Note**: Implement the `KerbInteractiveUnlockLogonPack` function to serialize the `KERB_INTERACTIVE_UNLOCK_LOGON` structure.
-
----
-
-## **Step 7: Register the Credential Provider in the Windows Registry**
-
-Create a `.reg` file or use code to register your Credential Provider.
-
-**Registry Path**:
-
-- `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers`
-
-**Registry Entry**:
-
-```reg
-[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{YOUR_CREDENTIAL_PROVIDER_CLSID}]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{YOUR_PROVIDER_CLSID}]
 @="Simple Credential Provider"
-```
 
-Replace `{YOUR_CREDENTIAL_PROVIDER_CLSID}` with the CLSID of your Credential Provider.
+Replace {YOUR_PROVIDER_CLSID} with the actual CLSID of your Credential Provider.
 
----
 
-## **Step 8: Handle Errors and Provide Feedback**
 
-Implement error handling in the `GetSerialization` method to provide feedback if authentication fails.
+2. Reboot or log off to see the Credential Provider on the Windows login screen.
 
-```cpp
-HRESULT SimpleCredential::GetSerialization(
-    // ... existing parameters ...
-)
-{
-    HRESULT hr = /* existing code */;
 
-    if (FAILED(hr))
-    {
-        *pcpgsr = CPGSR_RETURN_NO_CREDENTIAL_FINISHED;
-        *ppwszOptionalStatusText = _wcsdup(L"Authentication failed. Please try again.");
-        *pcpsiOptionalStatusIcon = CPSI_ERROR;
-    }
 
-    return hr;
-}
-```
+Uninstallation
 
----
+1. To unregister the Credential Provider, run the following command:
 
-## **Step 9: Compile and Test**
+regsvr32 /u SimpleCredentialProvider.dll
 
-1. **Compile** the project to generate the DLL.
-2. **Register the DLL** using `regsvr32`.
 
-   ```cmd
-   regsvr32 SimpleCredentialProvider.dll
-   ```
+2. Optionally, remove the registry key manually or via script:
 
-3. **Reboot** or **log off** to see the Credential Provider on the login screen.
+reg delete "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{YOUR_PROVIDER_CLSID}" /f
 
----
 
-## **Step 10: Security Considerations**
 
-- **Secure Strings**: Ensure that you handle passwords securely in memory.
-- **Error Messages**: Avoid revealing sensitive information in error messages.
+Troubleshooting
+
+Registration Issues: Ensure you are running regsvr32 with Administrator privileges to register the DLL.
+
+Unicode Support: Make sure the /DUNICODE and /D_UNICODE flags are used to compile the project for full Unicode support.
+
+Error Handling: If the login fails, the provider will display an error message on the login screen. Ensure your local account exists and the username/password are correct.
+
+
+License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
+
+Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request to propose changes or improvements.
+
 
 ---
 
-**References**:
-
-- [Microsoft Docs: Credential Provider Framework](https://docs.microsoft.com/en-us/windows/win32/secwin/credential-provider-technical-reference)
-- [Sample Credential Providers](https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/CredentialProvider)
+Author: Ignacio Rodríguez
